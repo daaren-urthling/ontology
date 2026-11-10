@@ -1,16 +1,17 @@
 import error from './error.js';
 import path from 'node:path';
 import fs from 'node:fs';
-import { glob } from 'glob';
+import { globSync } from 'glob';
 import xml2js from 'xml2js';
 import _ from 'lodash';
+import fsStuff from './fs-stuff.js'
 
 export default   {
 
     //-----------------------------------------------------------------------------
     scanFor(markerFile) {
         var folders = [];
-        glob.sync(path.join('*', markerFile), { nocase: true }).forEach(folder => {
+        globSync(fsStuff.path_join('*', markerFile), { nocase: true }).forEach(folder => {
             folders.push(path.dirname(folder));
         });
         return folders;

@@ -44,6 +44,11 @@ import path from 'node:path';
         }
     }
   }
+
+  path_join(...parts) {
+      return path.join(...parts).replaceAll('\\', '/');
+  }
+
 }
 
 export default new FSStuff();

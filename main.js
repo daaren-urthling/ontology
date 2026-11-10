@@ -4,7 +4,7 @@ import _ from 'lodash';
 import path from 'node:path';
 import fs from 'node:fs';
 import metadata from './metadata.js';
-import createAppHelp from './application.js';
+import createAppOntology from './application.js';
 import error from './error.js';
 
 console.log(chalk.bold('Welcome to the Mago Ontology generator'));
@@ -35,3 +35,10 @@ if (!isStandard) {
 process.chdir(workingPath);
 var appNames = metadata.scanFor('Application.config');
 console.log(appNames);
+var apps = [];
+appNames.forEach(appName => {
+    var app = {name: appName};
+    if (createAppOntology(app, workingPath, outputPath)) {
+        apps.push(app);
+    }
+});
