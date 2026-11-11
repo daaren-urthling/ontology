@@ -27,8 +27,10 @@ export default function createModuleOntology(module, workingPath, outputPath) {
     }
 
     module.documentObjects.Documents.forEach(doc => {
-        if (!metadata.isBatch(doc.ViewModes))
+        if (!metadata.isBatch(doc.ViewModes)) {
             getDocumentMetadata(doc);
+            createDocumentOntology(outputPath, doc);
+        }
     });
 
     return true;
@@ -48,7 +50,50 @@ function getDocumentMetadata(doc) {
         return;
     }
     doc.DBTMaster = dbts.Master;
-    doc.DBTMaster.Slaves = metadata.normalize(dbts.Master, "Slaves");
+    doc.DBTMaster.Slaves = metadata.normalize(dbts.Master, "Slave");
+}
+
+// docURI = contacts
+// docName = Contacts
+// docNamespace = ERP.Contacts.Documents.Contacts
+function createDocumentOntology(outputPath, doc) {
+    if (!metadata.defined(doc.DBTMaster) ) return; // TODO gestire batfch e simili
+    var docName = metadata.objectName(doc.namespace);
+    var docURI = _.toLower(docName);    
+    var dbtMasterName = `${docName}_${metadata.objectName(doc.DBTMaster.namespace)}`;
+    
+    var content = `
+    @prefix mago:       <https://www.microarea.it/ontology#> .
+    @prefix ${docURI}:  <https://www.microarea.it/ontology/${docURI}#> .
+
+    <https://www.microarea.it/ontology/${docURI}>
+        a owl:Ontology ;
+        owl:imports <https://www.microarea.it/ontology/core> .
+    
+    ${docURI}:${docName}
+        a mago:Document ;
+        mago:namespace "${doc.namespace}" ;
+        mago:hasDBTMaster ${docURI}:${dbtMasterName} .
+    
+    ${docURI}:${dbtMasterName}
+        a mago:DBTMaster ;
+        mago:namespace "${doc.DBTMaster.namespace}" ;
+    `;
+
+    if (doc.DBTMaster.Slaves.length > 0) {
+        content += `
+            mago:hasDBTSlave
+        `;
+        doc.DBTMaster.Slaves.forEach( slave => {
+            content += `${docURI}:${metadata.objectName(slave.namespace)}`
+        })
+    }
+
+    try {
+        fs.writeFileSync(path.join(outputPath, `${docName}.ttl`), content);
+    } catch (err) {
+        error(err);
+    }
 }
 
 function createHelpFile(outputPath, module) {

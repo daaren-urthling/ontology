@@ -99,7 +99,7 @@ function isBatch(viewModes) {
 
     var batch = false;
     viewModes.Mode.forEach(m => {
-        if (defined(m.type) && m.type === "batch")
+        if (defined(m.type) && (m.type === "batch" || m.type === "finder"))
             batch = true;
     });
     return batch;
