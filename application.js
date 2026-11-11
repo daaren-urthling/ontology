@@ -6,11 +6,14 @@ import fs from 'node:fs';
 import _ from 'lodash';
 // import markdown from './markdown.js';
 import fsStuff from './fs-stuff.js';
+import { options, prune } from './commonOptions.js';
 
 export default function createAppOntology(app, workingPath, outputPath) {
     process.chdir(path.join(workingPath, app.name));
     _.assignIn(app, metadata.parseXML('Application.config'));
     var moduleNames = metadata.scanFor('Module.config');
+    moduleNames = prune(moduleNames, options.modules, "Module");
+    
     app.modules = [];
     var appOutputPath = path.join(outputPath, `${app.name}Ontology`);
     fsStuff.rimraf(appOutputPath);

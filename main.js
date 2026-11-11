@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import metadata from './metadata.js';
 import createAppOntology from './application.js';
 import { error, info } from './notifications.js';
-import { options } from './commonOptions.js'
+import { options, prune } from './commonOptions.js'
 
 info('Welcome to the Mago Ontology generator');
 
@@ -27,13 +27,7 @@ if (!_.toLower(options.input).endsWith('\\standard\\applications')) {
 
 process.chdir(options.input);
 var appNames = metadata.scanFor('Application.config');
-if (options.apps.length > 0) {
-    options.apps.forEach(app => {
-        if (!appNames.includes(app))
-            error(`Application ${app} does not exist`)
-    });
-    appNames = options.apps;
-}
+appNames = prune(appNames, options.apps, "Application");
 
 if  (
         (options.apps.length === 0 && options.modules.length > 0) ||
