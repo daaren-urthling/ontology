@@ -3,32 +3,54 @@ import _ from 'lodash';
 import path from 'node:path';
 import fs from 'node:fs';
 // import markdown from './markdown.js';
-import { error } from './notifications.js';
+import { error, warning } from './notifications.js';
 
 export default function createModuleOntology(module, workingPath, outputPath) {
     process.chdir(path.join(workingPath, module.name));
     _.assignIn(module, metadata.parseXML('Module.config'));
     if (!metadata.defined(module.localize)) {
-        module.localize = "missing module description";
+        module.localize = "N/A";
+        warning(`Missing description for module ${module.name} of application ${module.appName}`);
     }
-    var dbMetadata = path.join('EFCore', 'EFSchemaObjects.xml');
-    if (!fs.existsSync(dbMetadata)) {
+    var docsMetadata = path.join('ModuleObjects', 'DocumentObjects.xml');
+    if (!fs.existsSync(docsMetadata)) {
+        warning(`Module ${module.name} of application ${module.appName} has no documents defined`);
         return false;
     }
-    module.dbObjects = metadata.parseXML(dbMetadata);
 
-    var tables = metadata.defined(module.dbObjects.Tables) ? metadata.asArray(module.dbObjects.Tables.Table) : [];
+    var objs = metadata.parseXML(docsMetadata);
+    module.documentObjects = { Documents : metadata.normalize(objs.Documents, "Document") } ;
 
-    if (tables.length > 0) {
-        module.dbObjects.Tables = { Table: tables };
-        mergeDBInfoData(module.dbObjects);
-        // createHelpFile(outputPath, module);
-        return true;
+    if (module.documentObjects.Documents.length === 0) {
+        warning(`Module ${module.name} of application ${module.appName} has no documents defined`);
+        return false;
     }
-    return false;
+
+    module.documentObjects.Documents.forEach(doc => {
+        if (!metadata.isBatch(doc.ViewModes))
+            getDocumentMetadata(doc);
+    });
+
+    return true;
 }
 
-//-----------------------------------------------------------------------------
+function getDocumentMetadata(doc) {
+    var dbtsFName = path.join("ModuleObjects", `${metadata.objectName(doc.namespace)}`, "Description", "Dbts.xml" );
+    if (!fs.existsSync(dbtsFName)) {
+        warning(`Document ${doc.namespace} has no DBTs defined`);
+        return;
+    }
+
+    var dbts = metadata.parseXML(dbtsFName);
+
+    if (!metadata.defined(dbts.Master)) {
+        warning(`Document ${doc.namespace} has no Master DBT defined`);
+        return;
+    }
+    doc.DBTMaster = dbts.Master;
+    doc.DBTMaster.Slaves = metadata.normalize(dbts.Master, "Slaves");
+}
+
 function createHelpFile(outputPath, module) {
     var content = `[H2 ${module.appName}-${module.name}]${module.localize}\nHere the **${module.localize}** tables:\n\n`;
 
@@ -52,7 +74,6 @@ function createHelpFile(outputPath, module) {
     }
 }
 
-//-----------------------------------------------------------------------------
 function createTableDescription(table) {
     var content = `[H3 ${metadata.dashed(metadata.compact(table.namespace))}]${metadata.objectName(table.namespace)}\n`;
 
