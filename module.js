@@ -3,7 +3,7 @@ import _ from 'lodash';
 import path from 'node:path';
 import fs from 'node:fs';
 // import markdown from './markdown.js';
-import error from './error.js';
+import { error } from './notifications.js';
 
 export default function createModuleOntology(module, workingPath, outputPath) {
     process.chdir(path.join(workingPath, module.name));

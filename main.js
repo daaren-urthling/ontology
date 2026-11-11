@@ -1,44 +1,53 @@
 #!/usr/bin/env node
-import chalk from 'chalk';
+
 import _ from 'lodash';
-import path from 'node:path';
 import fs from 'node:fs';
 import metadata from './metadata.js';
 import createAppOntology from './application.js';
-import error from './error.js';
+import { error, info } from './notifications.js';
+import { options } from './commonOptions.js'
 
-console.log(chalk.bold('Welcome to the Mago Ontology generator'));
+info('Welcome to the Mago Ontology generator');
 
-var workingPath = null;
-const cmdArgs = process.argv.slice(2);
-
-if (cmdArgs.length < 1) {
-    error("Usage: ontology <output> [input path]\nAt least the output path must be specified.");
-}
-var outputPath = cmdArgs[0];
-if (!fs.existsSync(outputPath)) {
-    error(`The output path ${outputPath} does not exists.`)
+if (options.input == "" || options.output == "") {
+    error("Usage: ontology --input <input path> --output <output path>");
 }
 
-if (cmdArgs.length < 2) {
-    workingPath = process.cwd();
-} else {
-    workingPath = cmdArgs[1];
+if (!fs.existsSync(options.output)) {
+    error(`The output path ${options.output} does not exists.`)
 }
 
-var isStandard = _.toLower(workingPath).endsWith('\\standard\\applications');
-
-if (!isStandard) {
-    error("Usage: ontology <output> [input path]\n'input path' argument or current folder must be inside the 'Standard' folder of a TaskBuilder Application\ne.g.: <your instance>\\Standard\\Applications\\<your app>");
+if (!fs.existsSync(options.input)) {
+    error(`The input path ${options.input} does not exists.`)
 }
 
-process.chdir(workingPath);
+if (!_.toLower(options.input).endsWith('\\standard\\applications')) {
+    error(`Input path ${options.input} must be inside the 'Standard' folder of a TaskBuilder Application\ne.g.: <your instance>\\Standard\\Applications\\<your app>`);
+}
+
+process.chdir(options.input);
 var appNames = metadata.scanFor('Application.config');
+if (options.apps.length > 0) {
+    options.apps.forEach(app => {
+        if (!appNames.includes(app))
+            error(`Application ${app} does not exist`)
+    });
+    appNames = options.apps;
+}
+
+if  (
+        (options.apps.length === 0 && options.modules.length > 0) ||
+        (options.apps.length > 1 && options.modules.length > 0)
+    ) {
+    error("Module list is allowed only when a single application is specified\ne.g.: --apps ABC --modules XYZ JKL ")
+}
+
+info('Applications:')
 console.log(appNames);
 var apps = [];
 appNames.forEach(appName => {
     var app = {name: appName};
-    if (createAppOntology(app, workingPath, outputPath)) {
+    if (createAppOntology(app, options.input, options.output)) {
         apps.push(app);
     }
 });

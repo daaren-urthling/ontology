@@ -13,7 +13,7 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}\\main.js",
-            "args": ["C:\\working\\MagoOntology", "C:\\develop\\Standard\\Applications" ]
+            "args": ["--output", "C:\\working\\MagoOntology", "--input", "C:\\development\\Standard\\Applications", "--modules", "Sales" ]
         }
     ]
 }

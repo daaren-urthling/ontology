@@ -1,7 +1,7 @@
 import metadata from './metadata.js';
 import createModuleOntology from './module.js';
 import path from 'node:path';
-import error from './error.js';
+import { error } from './notifications.js';
 import fs from 'node:fs';
 import _ from 'lodash';
 // import markdown from './markdown.js';
