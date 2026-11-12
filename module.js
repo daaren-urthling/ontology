@@ -98,9 +98,9 @@ ${docURI}:${RDF.dbtName(docName, doc.DBTMaster)}
         doc.DBTMaster.SlaveBuffered.forEach( slave => {
         content += `${docURI}:${RDF.dbtName(docName, slave)} ,
         `
-        })
-        // last "," turn to "."
-        content = content.replace(/,([^,]*)$/, ".$1");
+        });
+        
+        content = RDF.replaceDandlingComma(content);
     } else {
         content += ".\n"
     }

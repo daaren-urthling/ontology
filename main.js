@@ -8,6 +8,8 @@ import createAppOntology from './application.js';
 import { error, info } from './notifications.js';
 import { options, prune } from './commonOptions.js'
 import { copyAsset } from './assetsManagement.js'
+import fsStuff from './fs-stuff.js';
+import RDF from './RDF.js';
 
 info('Welcome to the Mago Ontology generator');
 
@@ -40,7 +42,10 @@ if  (
 
 const assets = path.join(path.dirname(process.argv[1]), 'assets');
 console.log(assets);
-copyAsset('mago-core.ttl', assets, options.output)
+
+fsStuff.rimraf(path.join(options.output, "*"));
+copyAsset('mago-core.ttl', assets, options.output);
+copyAsset('_RDFStudioGlobalSubjects.ttl', assets, options.output);
 
 info('Applications:')
 console.log(appNames);
@@ -61,8 +66,7 @@ copyAsset('mago.ttl', assets, options.output, content => {
             })
         })
     });
-    // last "," turn to "."
-    content = content.replace(/,([^,]*)$/, ".$1");
-    return content;
+
+    return RDF.replaceDandlingComma(content);
 })
 

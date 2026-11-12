@@ -2,11 +2,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
- class FSStuff {
-
   // by Mouneer (https://stackoverflow.com/users/3100587/mouneer)
   // https://stackoverflow.com/questions/31645738/how-to-create-full-path-with-nodes-fs-mkdirsync
-  mkDirByPathSync(targetDir, {isRelativeToScript = false} = {}) {
+  function mkDirByPathSync(targetDir, {isRelativeToScript = false} = {}) {
     const sep = path.sep;
     const initDir = path.isAbsolute(targetDir) ? sep : '';
     const baseDir = isRelativeToScript ? __dirname : '.';
@@ -29,7 +27,7 @@ import path from 'node:path';
 
   // by Thybzi (https://stackoverflow.com/users/3027390/thybzi)
   // https://stackoverflow.com/questions/18052762/remove-directory-which-is-not-empty  
-  rimraf(targetDir, rootAlso = true) {
+  function rimraf(targetDir, rootAlso = true) {
     if (fs.existsSync(targetDir)) {
         fs.readdirSync(targetDir).forEach((entry) => {
             var entry_path = path.join(targetDir, entry);
@@ -45,10 +43,13 @@ import path from 'node:path';
     }
   }
 
-  path_join(...parts) {
+  function path_join(...parts) {
       return path.join(...parts).replaceAll('\\', '/');
   }
 
-}
 
-export default new FSStuff();
+export default {
+  mkDirByPathSync,
+  rimraf,
+  path_join
+}

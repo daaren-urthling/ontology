@@ -22,9 +22,15 @@ function docURI(doc) {
     return _.toLower(metadata.objectName(doc.namespace));   
 }
 
+function replaceDandlingComma(content) {
+    // turn last "," into "."
+     return content.replace(/,([^,]*)$/, ".$1");
+}
+
 export default {
     prefixes,
     dbtName,
     docURI,
-    docName
+    docName,
+    replaceDandlingComma
 }

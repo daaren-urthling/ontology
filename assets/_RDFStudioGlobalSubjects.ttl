@@ -1,0 +1,19 @@
+# This file contains fake declaration of external global subjects (i.e.: from owl, rdfs, etc.)
+# preventing RDFStudio VS COde extension to show errors in the editor
+# DO NOT LOAD IN PRODUCTION
+
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+owl:Ontology a <http://www.w3.org/2002/07/owl#> .
+owl:imports a <http://www.w3.org/2002/07/owl#> .
+owl:Class a <http://www.w3.org/2002/07/owl#> .
+owl:DatatypeProperty a <http://www.w3.org/2002/07/owl#> .
+owl:ObjectProperty a <http://www.w3.org/2002/07/owl#> .
+
+rdfs:subClassOf a <http://www.w3.org/2000/01/rdf-schema#> .
+rdfs:domain a <http://www.w3.org/2000/01/rdf-schema#> .
+rdfs:range a <http://www.w3.org/2000/01/rdf-schema#> .
+
+xsd:string a <http://www.w3.org/2001/XMLSchema#> .
