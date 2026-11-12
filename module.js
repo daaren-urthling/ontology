@@ -79,8 +79,9 @@ function createDocumentOntology(outputPath, doc, tables) {
     var docName = RDF.docName(doc);
     var docURI = RDF.docURI(doc);    
     
-    var content = `
-    ${RDF.prefixes}
+    var content =
+`
+${RDF.prefixes}
 @prefix ${docURI}:  <https://www.microarea.it/ontology/${docURI}#> .
 
 <https://www.microarea.it/ontology/${docURI}>
@@ -92,45 +93,15 @@ ${docURI}:${docName}
     mago:namespace "${doc.namespace}" ;
     mago:hasDBTMaster ${docURI}:${RDF.dbtName(docName, doc.DBTMaster)} .
 
-${docURI}:${RDF.dbtName(docName, doc.DBTMaster)}
-    a mago:DBTMaster ;
-    mago:namespace "${doc.DBTMaster.namespace}" `;
-
-    if (doc.DBTMaster.Slave.length > 0 || doc.DBTMaster.SlaveBuffered.length > 0) {
-        content += ` ;
-    mago:hasDBTSlave
-        `;
-        doc.DBTMaster.Slave.forEach( slave => {
-        content += `${docURI}:${RDF.dbtName(docName, slave)} ,
-        `
-        })
-        doc.DBTMaster.SlaveBuffered.forEach( slave => {
-        content += `${docURI}:${RDF.dbtName(docName, slave)} ,
-        `
-        });
-        
-        content = RDF.replaceLastWith(content, ",", ";");
-        content = RDF.replaceLastWith(content, "\t", "");
-    } else {
-        content += ";\n"
-    }
-
-    content += addDBTFields(docURI, doc.DBTMaster, tables);
+`;
+    content += addDBT(docName, docURI, doc.DBTMaster, "DBTMaster", tables);
 
     doc.DBTMaster.Slave.forEach( slave => {
-        content += `
-${docURI}:${RDF.dbtName(docName, slave)} 
-    a mago:DBTSlave ;
-    mago:namespace "${slave.namespace}" .
-    `
+        content += "\n" + addDBT(docName, docURI, slave, "DBTSlave", tables);
     })
 
     doc.DBTMaster.SlaveBuffered.forEach( slave => {
-        content += `
-${docURI}:${RDF.dbtName(docName, slave)} 
-    a mago:DBTSlaveBuffered ;
-    mago:namespace "${slave.namespace}" .
-    `
+        content += "\n" + addDBT(docName, docURI, slave, "DBTSlaveBuffered", tables);
     })
 
     try {
@@ -140,24 +111,77 @@ ${docURI}:${RDF.dbtName(docName, slave)}
     }
 }
 
-function addDBTFields(docURI, dbt, tables) {
-    var fields = `mago:hasField
-    `
-
+function addDBT(docName, docURI, dbt, dbtType, tables) {
     var table = findTable(dbt.Table.namespace, tables);
 
-    return fields;
+    if (!metadata.defined(table) || !metadata.isArray(table.Columns)) {
+        warning(`Table ${dbt.Table.namespace} is not defined or has no fields.`);
+        return "";
+    }
+
+    var dbtText =
+`${docURI}:${RDF.dbtName(docName, dbt)}
+    a mago:${dbtType} ;
+    mago:namespace "${dbt.namespace}" ;`;
+
+    if (dbt.Slave?.length > 0 || dbt.SlaveBuffered?.length > 0) {
+        dbtText += 
+`   
+    mago:hasDBTSlave
+        `;
+        dbt.Slave?.forEach( slave => {
+        dbtText += 
+        `${docURI}:${RDF.dbtName(docName, slave)} ,
+        `
+        })
+        dbt.SlaveBuffered?.forEach( slave => {
+        dbtText += 
+        `${docURI}:${RDF.dbtName(docName, slave)} ,
+        `
+        });
+        
+        dbtText = RDF.replaceLastWith(dbtText, ",", ";");
+        dbtText = RDF.replaceLastWith(dbtText, "        ", "");
+    } else {
+        dbtText += "\n"
+    }
+
+    dbtText += //addDBTFields(docURI, dbt, table);
+`    mago:hasField
+    `
+    table.Columns.Column.forEach(column => {
+    dbtText += 
+`    ${docURI}:${column.SchemaInfo.content} ,
+    `
+    });
+
+    dbtText = RDF.replaceLastWith(dbtText, ",", ".") + "\n";
+
+    table.Columns.Column.forEach(column => {
+    dbtText += 
+`${docURI}:${column.SchemaInfo.content} a mago:Field .
+`
+    });
+
+    return dbtText;
+
 }
 
+// function addDBTFields(docURI, dbt, table) {
+//      var fieldsText = 
+// `    mago:hasField
+//     `
+//     table.Columns.Column.forEach(column => {
+//     fieldsText += 
+// `    ${docURI}:${column.SchemaInfo.content} ,
+//     `
+//     });
+
+//     return fieldsText;
+// }
+
 function findTable(namespace, tables) {
-    // tables.some(table => {
-    //     if (table.namespace == namespace)
-    //         return table;
-    // });
-
-    const table = tables.find(table => table.namespace === namespace);
-
-    return table;
+    return tables.find(table => _.toLower(table.namespace) == _.toLower(namespace));
 }
 
 //#region old code

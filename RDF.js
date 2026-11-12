@@ -1,7 +1,8 @@
 import metadata from './metadata.js';
 import _ from 'lodash';
 
-const prefixes = `
+const prefixes = 
+`
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
@@ -31,7 +32,7 @@ function replaceLastWith(content, original, substitute) {
     const pos = content.lastIndexOf(original);
 
     if (pos !== -1) {
-        content = content.substring(0, pos) + substitute + content.substring(pos + 1);
+        content = content.substring(0, pos) + substitute + content.substring(pos + original.length);
     }
     return content;
 }
