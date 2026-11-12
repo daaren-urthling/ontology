@@ -50,7 +50,17 @@ function getDocumentMetadata(doc) {
         return;
     }
     doc.DBTMaster = dbts.Master;
-    doc.DBTMaster.Slaves = metadata.normalize(dbts.Master, "Slave");
+    doc.DBTMaster.Slave = [];
+    doc.DBTMaster.SlaveBuffered = [];
+    if (metadata.defined(dbts.Master.Slaves)) {
+        doc.DBTMaster.Slave = metadata.normalize(dbts.Master.Slaves, "Slave");
+        doc.DBTMaster.SlaveBuffered = metadata.normalize(dbts.Master.Slaves, "SlaveBuffered");
+    }
+    delete doc.DBTMaster.Slaves;
+}
+
+function dbtName(docName, dbt) {
+    return `${docName}_${metadata.objectName(dbt.namespace)}`
 }
 
 // docURI = contacts
@@ -73,21 +83,45 @@ function createDocumentOntology(outputPath, doc) {
     ${docURI}:${docName}
         a mago:Document ;
         mago:namespace "${doc.namespace}" ;
-        mago:hasDBTMaster ${docURI}:${dbtMasterName} .
+        mago:hasDBTMaster ${docURI}:${dbtName(docName, doc.DBTMaster)} .
     
     ${docURI}:${dbtMasterName}
         a mago:DBTMaster ;
-        mago:namespace "${doc.DBTMaster.namespace}" ;
-    `;
+        mago:namespace "${doc.DBTMaster.namespace}" `;
 
-    if (doc.DBTMaster.Slaves.length > 0) {
-        content += `
-            mago:hasDBTSlave
-        `;
-        doc.DBTMaster.Slaves.forEach( slave => {
-            content += `${docURI}:${metadata.objectName(slave.namespace)}`
+    if (doc.DBTMaster.Slave.length > 0 || doc.DBTMaster.SlaveBuffered.length > 0) {
+        content += ` ;
+        mago:hasDBTSlave
+            `;
+        doc.DBTMaster.Slave.forEach( slave => {
+            content += `${docURI}:${dbtName(docName, slave)} ,
+            `
         })
+        doc.DBTMaster.SlaveBuffered.forEach( slave => {
+            content += `${docURI}:${dbtName(docName, slave)} ,
+            `
+        })
+        // last "," turn to "."
+        content = content.replace(/,([^,]*)$/, ".$1");
+    } else {
+        content += ".\n"
     }
+
+    doc.DBTMaster.Slave.forEach( slave => {
+        content += `
+    ${docURI}:${dbtName(docName, slave)} 
+        a mago:DBTSlave ;
+        mago:namespace "${slave.namespace}" .
+        `
+    })
+
+    doc.DBTMaster.SlaveBuffered.forEach( slave => {
+        content += `
+    ${docURI}:${dbtName(docName, slave)} 
+        a mago:DBTSlaveBuffered ;
+        mago:namespace "${slave.namespace}" .
+        `
+    })
 
     try {
         fs.writeFileSync(path.join(outputPath, `${docName}.ttl`), content);
