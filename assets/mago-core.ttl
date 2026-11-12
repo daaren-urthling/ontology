@@ -1,0 +1,60 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+@prefix mago: <https://www.microarea.it/ontology#> .
+
+<https://www.microarea.it/ontology/core>
+    a owl:Ontology .
+
+# Classes
+
+mago:Object 
+    a owl:Class .
+
+mago:Document
+    a owl:Class ;
+    rdfs:subClassOf mago:Object .
+
+mago:DBT
+    a owl:Class ;
+    rdfs:subClassOf mago:Object .
+
+mago:DBTMaster
+    a owl:Class ;
+    rdfs:subClassOf mago:DBT .
+
+mago:DBTSlave
+    a owl:Class ;
+    rdfs:subClassOf mago:DBT .
+
+mago:DBTSlaveBuffered
+    a owl:Class ;
+    rdfs:subClassOf mago:DBTSlave .
+
+mago:Field
+    a owl:Class .
+
+# Properties
+
+mago:namespace
+    a owl:DatatypeProperty ;
+    rdfs:domain mago:Object ;
+    rdfs:range xsd:string .
+
+mago:hasDBTMaster
+    a owl:ObjectProperty ;
+    rdfs:domain mago:Document ;
+    rdfs:range mago:DBTMaster .
+
+mago:hasDBTSlave
+    a owl:ObjectProperty ;
+    rdfs:domain mago:DBTMaster ;
+    rdfs:range mago:DBTSlave .
+
+mago:hasField
+    a owl:ObjectProperty ;
+    rdfs:domain mago:DBT ;
+    rdfs:range mago:Field .
+

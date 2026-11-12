@@ -1,0 +1,8 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+<https://mago.example.org/ontology>
+    a owl:Ontology ;
+
+    owl:imports
+        <https://mago.example.org/ontology/core> ,
+        

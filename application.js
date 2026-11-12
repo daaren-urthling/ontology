@@ -35,7 +35,7 @@ export default function createAppOntology(app, workingPath, outputPath) {
     // } else {
     //     fsStuff.rimraf(appOutputPath);
     // }
-    return false;
+    return true;
 }
 
 

@@ -2,10 +2,12 @@
 
 import _ from 'lodash';
 import fs from 'node:fs';
+import path from 'node:path';
 import metadata from './metadata.js';
 import createAppOntology from './application.js';
 import { error, info } from './notifications.js';
 import { options, prune } from './commonOptions.js'
+import { copyAsset } from './assetsManagement.js'
 
 info('Welcome to the Mago Ontology generator');
 
@@ -36,6 +38,10 @@ if  (
     error("Module list is allowed only when a single application is specified\ne.g.: --apps ABC --modules XYZ JKL ")
 }
 
+const assets = path.join(path.dirname(process.argv[1]), 'assets');
+console.log(assets);
+copyAsset('mago-core.ttl', assets, options.output)
+
 info('Applications:')
 console.log(appNames);
 var apps = [];
@@ -45,3 +51,18 @@ appNames.forEach(appName => {
         apps.push(app);
     }
 });
+
+copyAsset('mago.ttl', assets, options.output, content => {
+    apps.forEach(app => {
+        app.modules.forEach(mod => {
+            mod.documents.forEach(doc => {
+                content += `<https://www.microarea.it/ontology/${_.toLower(metadata.objectName(doc.namespace))}#> ,
+        ` 
+            })
+        })
+    });
+    // last "," turn to "."
+    content = content.replace(/,([^,]*)$/, ".$1");
+    return content;
+})
+

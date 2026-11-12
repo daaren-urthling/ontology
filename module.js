@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 // import markdown from './markdown.js';
 import { error, warning } from './notifications.js';
+import RDF from './RDF.js'
 
 export default function createModuleOntology(module, workingPath, outputPath) {
     process.chdir(path.join(workingPath, module.name));
@@ -18,18 +19,20 @@ export default function createModuleOntology(module, workingPath, outputPath) {
         return false;
     }
 
-    var objs = metadata.parseXML(docsMetadata);
-    module.documentObjects = { Documents : metadata.normalize(objs.Documents, "Document") } ;
+    var documentObjects = metadata.parseXML(docsMetadata);
+    documentObjects = metadata.normalize(documentObjects.Documents, "Document");
 
-    if (module.documentObjects.Documents.length === 0) {
+    if (documentObjects.length === 0) {
         warning(`Module ${module.name} of application ${module.appName} has no documents defined`);
         return false;
     }
 
-    module.documentObjects.Documents.forEach(doc => {
+    module.documents = [];
+    documentObjects.forEach(doc => {
         if (!metadata.isBatch(doc.ViewModes)) {
             getDocumentMetadata(doc);
             createDocumentOntology(outputPath, doc);
+            module.documents.push(doc);
         }
     });
 
@@ -59,47 +62,42 @@ function getDocumentMetadata(doc) {
     delete doc.DBTMaster.Slaves;
 }
 
-function dbtName(docName, dbt) {
-    return `${docName}_${metadata.objectName(dbt.namespace)}`
-}
-
 // docURI = contacts
 // docName = Contacts
 // docNamespace = ERP.Contacts.Documents.Contacts
 function createDocumentOntology(outputPath, doc) {
-    if (!metadata.defined(doc.DBTMaster) ) return; // TODO gestire batfch e simili
-    var docName = metadata.objectName(doc.namespace);
-    var docURI = _.toLower(docName);    
-    var dbtMasterName = `${docName}_${metadata.objectName(doc.DBTMaster.namespace)}`;
+    if (!metadata.defined(doc.DBTMaster) ) return; // TODO gestire batch e simili
+    var docName = RDF.docName(doc);
+    var docURI = RDF.docURI(doc);    
     
     var content = `
-    @prefix mago:       <https://www.microarea.it/ontology#> .
-    @prefix ${docURI}:  <https://www.microarea.it/ontology/${docURI}#> .
+    ${RDF.prefixes}
+@prefix ${docURI}:  <https://www.microarea.it/ontology/${docURI}#> .
 
-    <https://www.microarea.it/ontology/${docURI}>
-        a owl:Ontology ;
-        owl:imports <https://www.microarea.it/ontology/core> .
-    
-    ${docURI}:${docName}
-        a mago:Document ;
-        mago:namespace "${doc.namespace}" ;
-        mago:hasDBTMaster ${docURI}:${dbtName(docName, doc.DBTMaster)} .
-    
-    ${docURI}:${dbtMasterName}
-        a mago:DBTMaster ;
-        mago:namespace "${doc.DBTMaster.namespace}" `;
+<https://www.microarea.it/ontology/${docURI}>
+    a owl:Ontology ;
+    owl:imports <https://www.microarea.it/ontology/core> .
+
+${docURI}:${docName}
+    a mago:Document ;
+    mago:namespace "${doc.namespace}" ;
+    mago:hasDBTMaster ${docURI}:${RDF.dbtName(docName, doc.DBTMaster)} .
+
+${docURI}:${RDF.dbtName(docName, doc.DBTMaster)}
+    a mago:DBTMaster ;
+    mago:namespace "${doc.DBTMaster.namespace}" `;
 
     if (doc.DBTMaster.Slave.length > 0 || doc.DBTMaster.SlaveBuffered.length > 0) {
         content += ` ;
-        mago:hasDBTSlave
-            `;
+    mago:hasDBTSlave
+        `;
         doc.DBTMaster.Slave.forEach( slave => {
-            content += `${docURI}:${dbtName(docName, slave)} ,
-            `
+        content += `${docURI}:${RDF.dbtName(docName, slave)} ,
+        `
         })
         doc.DBTMaster.SlaveBuffered.forEach( slave => {
-            content += `${docURI}:${dbtName(docName, slave)} ,
-            `
+        content += `${docURI}:${RDF.dbtName(docName, slave)} ,
+        `
         })
         // last "," turn to "."
         content = content.replace(/,([^,]*)$/, ".$1");
@@ -109,18 +107,18 @@ function createDocumentOntology(outputPath, doc) {
 
     doc.DBTMaster.Slave.forEach( slave => {
         content += `
-    ${docURI}:${dbtName(docName, slave)} 
-        a mago:DBTSlave ;
-        mago:namespace "${slave.namespace}" .
-        `
+${docURI}:${RDF.dbtName(docName, slave)} 
+    a mago:DBTSlave ;
+    mago:namespace "${slave.namespace}" .
+    `
     })
 
     doc.DBTMaster.SlaveBuffered.forEach( slave => {
         content += `
-    ${docURI}:${dbtName(docName, slave)} 
-        a mago:DBTSlaveBuffered ;
-        mago:namespace "${slave.namespace}" .
-        `
+${docURI}:${RDF.dbtName(docName, slave)} 
+    a mago:DBTSlaveBuffered ;
+    mago:namespace "${slave.namespace}" .
+    `
     })
 
     try {
@@ -129,6 +127,8 @@ function createDocumentOntology(outputPath, doc) {
         error(err);
     }
 }
+
+//#region old code
 
 function createHelpFile(outputPath, module) {
     var content = `[H2 ${module.appName}-${module.name}]${module.localize}\nHere the **${module.localize}** tables:\n\n`;
@@ -279,3 +279,5 @@ function hotlink(column, appName) {
     }
     return column.SchemaInfo.content;
 }
+
+//#endregion
