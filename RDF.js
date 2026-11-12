@@ -27,10 +27,20 @@ function replaceDandlingComma(content) {
      return content.replace(/,([^,]*)$/, ".$1");
 }
 
+function replaceLastWith(content, original, substitute) {
+    const pos = content.lastIndexOf(original);
+
+    if (pos !== -1) {
+        content = content.substring(0, pos) + substitute + content.substring(pos + 1);
+    }
+    return content;
+}
+
 export default {
     prefixes,
     dbtName,
     docURI,
     docName,
-    replaceDandlingComma
+    replaceDandlingComma,
+    replaceLastWith
 }

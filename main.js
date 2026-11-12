@@ -43,7 +43,7 @@ if  (
 const assets = path.join(path.dirname(process.argv[1]), 'assets');
 console.log(assets);
 
-fsStuff.rimraf(path.join(options.output, "*"));
+fsStuff.rimraf(options.output, false);
 copyAsset('mago-core.ttl', assets, options.output);
 copyAsset('_RDFStudioGlobalSubjects.ttl', assets, options.output);
 

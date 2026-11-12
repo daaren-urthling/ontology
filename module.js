@@ -13,9 +13,18 @@ export default function createModuleOntology(module, workingPath, outputPath) {
         module.localize = "N/A";
         warning(`Missing description for module ${module.name} of application ${module.appName}`);
     }
+
+    var dbMetadata = path.join('EFCore', 'EFSchemaObjects.xml');
+    if (!fs.existsSync(dbMetadata)) {
+        warning(`Module ${module.name} of application ${module.appName} has no tables defined. Module skipped.`);
+        return false;
+    }
+    var dbObjects = metadata.parseXML(dbMetadata);
+    module.tables = metadata.normalize(dbObjects.Tables, "Table");
+
     var docsMetadata = path.join('ModuleObjects', 'DocumentObjects.xml');
     if (!fs.existsSync(docsMetadata)) {
-        warning(`Module ${module.name} of application ${module.appName} has no documents defined`);
+        warning(`Module ${module.name} of application ${module.appName} has no documents defined. Module skipped.`);
         return false;
     }
 
@@ -23,7 +32,7 @@ export default function createModuleOntology(module, workingPath, outputPath) {
     documentObjects = metadata.normalize(documentObjects.Documents, "Document");
 
     if (documentObjects.length === 0) {
-        warning(`Module ${module.name} of application ${module.appName} has no documents defined`);
+        warning(`Module ${module.name} of application ${module.appName} has no documents defined. Module skipped.`);
         return false;
     }
 
@@ -31,7 +40,7 @@ export default function createModuleOntology(module, workingPath, outputPath) {
     documentObjects.forEach(doc => {
         if (!metadata.isBatch(doc.ViewModes)) {
             getDocumentMetadata(doc);
-            createDocumentOntology(outputPath, doc);
+            createDocumentOntology(outputPath, doc, module.tables);
             module.documents.push(doc);
         }
     });
@@ -65,7 +74,7 @@ function getDocumentMetadata(doc) {
 // docURI = contacts
 // docName = Contacts
 // docNamespace = ERP.Contacts.Documents.Contacts
-function createDocumentOntology(outputPath, doc) {
+function createDocumentOntology(outputPath, doc, tables) {
     if (!metadata.defined(doc.DBTMaster) ) return; // TODO gestire batch e simili
     var docName = RDF.docName(doc);
     var docURI = RDF.docURI(doc);    
@@ -100,10 +109,13 @@ ${docURI}:${RDF.dbtName(docName, doc.DBTMaster)}
         `
         });
         
-        content = RDF.replaceDandlingComma(content);
+        content = RDF.replaceLastWith(content, ",", ";");
+        content = RDF.replaceLastWith(content, "\t", "");
     } else {
-        content += ".\n"
+        content += ";\n"
     }
+
+    content += addDBTFields(docURI, doc.DBTMaster, tables);
 
     doc.DBTMaster.Slave.forEach( slave => {
         content += `
@@ -126,6 +138,26 @@ ${docURI}:${RDF.dbtName(docName, slave)}
     } catch (err) {
         error(err);
     }
+}
+
+function addDBTFields(docURI, dbt, tables) {
+    var fields = `mago:hasField
+    `
+
+    var table = findTable(dbt.Table.namespace, tables);
+
+    return fields;
+}
+
+function findTable(namespace, tables) {
+    // tables.some(table => {
+    //     if (table.namespace == namespace)
+    //         return table;
+    // });
+
+    const table = tables.find(table => table.namespace === namespace);
+
+    return table;
 }
 
 //#region old code
