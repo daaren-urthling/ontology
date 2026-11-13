@@ -12,7 +12,7 @@ export default function createAppOntology(app, workingPath, outputPath) {
     moduleNames = prune(moduleNames, options.modules, "Module");
     
     app.modules = [];
-    var appOutputPath = path.join(outputPath, `${app.name}Ontology`);
+    var appOutputPath = path.join(outputPath, `${app.name}`);
     fs.mkdirSync(appOutputPath);
 
     moduleNames.forEach(moduleName => {

@@ -88,19 +88,32 @@ ${RDF.prefixes}
     a owl:Ontology ;
     owl:imports <https://www.microarea.it/ontology/core> .
 
-${docURI}:${docName}
-    a mago:Document ;
+${docURI}:${docName} a mago:Document ;
     mago:namespace "${doc.namespace}" ;
-    mago:hasDBTMaster ${docURI}:${RDF.dbtName(docName, doc.DBTMaster)} .
-
+    mago:description "${doc.localize ? doc.localize : "N/A" }" ;
+    mago:hasDBT
+        ${docURI}:${RDF.dbtName(docName, doc.DBTMaster)} ,
 `;
+    doc.DBTMaster.Slave?.forEach( slave => {
+    content += 
+`       ${docURI}:${RDF.dbtName(docName, slave)} ,
+`
+    })
+    doc.DBTMaster.SlaveBuffered?.forEach( slave => {
+    content += 
+`       ${docURI}:${RDF.dbtName(docName, slave)} ,
+`
+    });
+        
+    content = RDF.replaceLastWith(content, ",", ".\n");
+
     content += addDBT(docName, docURI, doc.DBTMaster, "DBTMaster", tables);
 
-    doc.DBTMaster.Slave.forEach( slave => {
+    doc.DBTMaster.Slave?.forEach( slave => {
         content += "\n" + addDBT(docName, docURI, slave, "DBTSlave", tables);
     })
 
-    doc.DBTMaster.SlaveBuffered.forEach( slave => {
+    doc.DBTMaster.SlaveBuffered?.forEach( slave => {
         content += "\n" + addDBT(docName, docURI, slave, "DBTSlaveBuffered", tables);
     })
 
@@ -120,65 +133,32 @@ function addDBT(docName, docURI, dbt, dbtType, tables) {
     }
 
     var dbtText =
-`${docURI}:${RDF.dbtName(docName, dbt)}
-    a mago:${dbtType} ;
-    mago:namespace "${dbt.namespace}" ;`;
+`${docURI}:${RDF.dbtName(docName, dbt)} a mago:${dbtType} ;
+    mago:namespace "${dbt.namespace}" ;
+`;
 
-    if (dbt.Slave?.length > 0 || dbt.SlaveBuffered?.length > 0) {
-        dbtText += 
-`   
-    mago:hasDBTSlave
-        `;
-        dbt.Slave?.forEach( slave => {
-        dbtText += 
-        `${docURI}:${RDF.dbtName(docName, slave)} ,
-        `
-        })
-        dbt.SlaveBuffered?.forEach( slave => {
-        dbtText += 
-        `${docURI}:${RDF.dbtName(docName, slave)} ,
-        `
-        });
-        
-        dbtText = RDF.replaceLastWith(dbtText, ",", ";");
-        dbtText = RDF.replaceLastWith(dbtText, "        ", "");
-    } else {
-        dbtText += "\n"
-    }
-
-    dbtText += //addDBTFields(docURI, dbt, table);
+    dbtText +=
 `    mago:hasField
-    `
+`
     table.Columns.Column.forEach(column => {
     dbtText += 
-`    ${docURI}:${column.SchemaInfo.content} ,
-    `
+`       ${docURI}:${RDF.fieldName(dbt, column.SchemaInfo.content)} ,
+`
     });
 
     dbtText = RDF.replaceLastWith(dbtText, ",", ".") + "\n";
 
     table.Columns.Column.forEach(column => {
     dbtText += 
-`${docURI}:${column.SchemaInfo.content} a mago:Field .
+`${docURI}:${RDF.fieldName(dbt, column.SchemaInfo.content)} a mago:Field ;
+    mago:columnName "${column.SchemaInfo.content}" ;
+    mago:description "${RDF.fieldDocumentation(column)}" .
+
 `
     });
 
     return dbtText;
-
 }
-
-// function addDBTFields(docURI, dbt, table) {
-//      var fieldsText = 
-// `    mago:hasField
-//     `
-//     table.Columns.Column.forEach(column => {
-//     fieldsText += 
-// `    ${docURI}:${column.SchemaInfo.content} ,
-//     `
-//     });
-
-//     return fieldsText;
-// }
 
 function findTable(namespace, tables) {
     return tables.find(table => _.toLower(table.namespace) == _.toLower(namespace));

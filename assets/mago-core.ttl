@@ -10,51 +10,49 @@
 
 # Classes
 
-mago:Object 
-    a owl:Class .
+mago:Object a owl:Class .
 
-mago:Document
-    a owl:Class ;
+mago:Document a owl:Class ;
     rdfs:subClassOf mago:Object .
 
-mago:DBT
-    a owl:Class ;
+mago:DBT a owl:Class ;
     rdfs:subClassOf mago:Object .
 
-mago:DBTMaster
-    a owl:Class ;
-    rdfs:subClassOf mago:DBT .
+mago:Field a owl:Class .
 
-mago:DBTSlave
-    a owl:Class ;
-    rdfs:subClassOf mago:DBT .
-
-mago:DBTSlaveBuffered
-    a owl:Class ;
-    rdfs:subClassOf mago:DBTSlave .
-
-mago:Field
-    a owl:Class .
-
-# Properties
-
-mago:namespace
-    a owl:DatatypeProperty ;
+mago:namespace a owl:DatatypeProperty ;
     rdfs:domain mago:Object ;
     rdfs:range xsd:string .
 
-mago:hasDBTMaster
-    a owl:ObjectProperty ;
+mago:columnName a owl:DatatypeProperty ;
+    rdfs:domain mago:Field ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Database column name of the Field."@en .
+
+mago:description a owl:DatatypeProperty ;
+    rdfs:range xsd:string .
+
+mago:hasDBT a owl:ObjectProperty ;
     rdfs:domain mago:Document ;
-    rdfs:range mago:DBTMaster .
+    rdfs:range mago:DBT .
 
-mago:hasDBTSlave
-    a owl:ObjectProperty ;
-    rdfs:domain mago:DBTMaster ;
-    rdfs:range mago:DBTSlave .
-
-mago:hasField
-    a owl:ObjectProperty ;
+mago:hasField a owl:ObjectProperty ;
     rdfs:domain mago:DBT ;
     rdfs:range mago:Field .
+
+mago:externalReference a owl:ObjectProperty ;
+    rdfs:domain mago:Field ;
+    rdfs:range mago:Document .
+
+mago:DBTMaster a owl:Class ;
+    rdfs:subClassOf mago:DBT ;
+    rdfs:comment "Main DBT of the header of the Document ('1 to 1' cardinality)."@en .
+
+mago:DBTSlave a owl:Class ;
+    rdfs:subClassOf mago:DBT ;
+    rdfs:comment "Slave DBT connected to the header in '1 to 1' relationship."@en .
+
+mago:DBTSlaveBuffered a owl:Class ;
+    rdfs:subClassOf mago:DBTSlave ;
+    rdfs:comment "Slave buffered DBT (grid/detail) connected to the header in '1 to N' relationship."@en .
 

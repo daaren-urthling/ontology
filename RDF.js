@@ -23,6 +23,17 @@ function docURI(doc) {
     return _.toLower(metadata.objectName(doc.namespace));   
 }
 
+function fieldName(dbt, field) {
+    return `${metadata.objectName(dbt.namespace)}_${field}`
+}
+
+function fieldDocumentation(column) {
+    if (column.DocumentationInfo && column.DocumentationInfo.content)
+        return column.DocumentationInfo.content;
+
+    return "N/A"
+}
+
 function replaceDandlingComma(content) {
     // turn last "," into "."
      return content.replace(/,([^,]*)$/, ".$1");
@@ -43,5 +54,7 @@ export default {
     docURI,
     docName,
     replaceDandlingComma,
-    replaceLastWith
+    replaceLastWith,
+    fieldName,
+    fieldDocumentation
 }

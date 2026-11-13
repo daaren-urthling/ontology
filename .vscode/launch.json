@@ -14,6 +14,16 @@
             ],
             "program": "${workspaceFolder}\\main.js",
             "args": ["--output", "C:\\working\\MagoOntology", "--input", "C:\\development\\Standard\\Applications", "--apps", "ERP", "--modules", "contacts" ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program (Alienware)",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}\\main.js",
+            "args": ["--output", "C:\\Users\\andre\\working\\MagoOntology", "--input", "C:\\Users\\andre\\working\\development\\Standard\\Applications", "--apps", "ERP", "--modules", "contacts" ]
         }
     ]
 }
