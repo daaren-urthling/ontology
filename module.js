@@ -5,6 +5,7 @@ import fs from 'node:fs';
 // import markdown from './markdown.js';
 import { error, warning } from './notifications.js';
 import RDF from './RDF.js'
+import { options } from './commonOptions.js';
 
 export default function createModuleOntology(module, workingPath, outputPath) {
     process.chdir(path.join(workingPath, module.name));
@@ -69,6 +70,38 @@ function getDocumentMetadata(doc) {
         doc.DBTMaster.SlaveBuffered = metadata.normalize(dbts.Master.Slaves, "SlaveBuffered");
     }
     delete doc.DBTMaster.Slaves;
+
+    doc.externalPrefixes = new Set();
+    var extRefFName = path.join("ModuleObjects", `${metadata.objectName(doc.namespace)}`, "Description", "ExternalReferences.xml" );
+    if (!fs.existsSync(extRefFName)) {
+        // no external references is not an issue
+        return;
+    }
+
+    var extRef = metadata.parseXML(extRefFName);
+    metadata.asArray(extRef.DBT).forEach(erDBT => {
+        var referencedDBT;
+        if (referencedDBT = findReferencedDBT(doc, erDBT.namespace)) {
+            referencedDBT.externalRef = metadata.normalize(erDBT.ExternalReferences, "ExternalReference");
+            // keep a list of external reference documents to insert prefixes at the top of the .ttl
+            referencedDBT.externalRef.forEach(er => {
+                 doc.externalPrefixes.add(RDF.docURI({namespace : er.namespace}));
+            });
+        } else {
+            warning(`In document ${doc.namespace} external references contains a non-existing DBT: ${erDBT.namespace}`);
+        }
+    })
+
+}
+
+function findReferencedDBT(doc, namespace) {
+    if (_.toLower(doc.DBTMaster.namespace) == _.toLower(namespace))
+        return doc.DBTMaster;
+    
+    return (
+        doc.DBTMaster.Slave.find(dbt => _.toLower(dbt.namespace) == _.toLower(namespace)) ||
+        doc.DBTMaster.SlaveBuffered.find(dbt => _.toLower(dbt.namespace) == _.toLower(namespace))
+    );
 }
 
 // docURI = contacts
@@ -82,6 +115,7 @@ function createDocumentOntology(outputPath, doc, tables) {
     var content =
 `
 ${RDF.prefixes}
+${getExternalPrefixes(doc)}
 @prefix ${docURI}:  <https://www.microarea.it/ontology/${docURI}#> .
 
 <https://www.microarea.it/ontology/${docURI}>
@@ -124,6 +158,14 @@ ${docURI}:${docName} a mago:Document ;
     }
 }
 
+function getExternalPrefixes(doc) {
+    var extPref = "";
+    for (const ep of doc.externalPrefixes) {
+        extPref += `@prefix ${ep}:  <https://www.microarea.it/ontology/${ep}#> .\n`
+    }
+    return extPref;
+}
+
 function addDBT(docName, docURI, dbt, dbtType, tables) {
     var table = findTable(dbt.Table.namespace, tables);
 
@@ -152,7 +194,8 @@ function addDBT(docName, docURI, dbt, dbtType, tables) {
     dbtText += 
 `${docURI}:${RDF.fieldName(dbt, column.SchemaInfo.content)} a mago:Field ;
     mago:columnName "${column.SchemaInfo.content}" ;
-    mago:description "${RDF.fieldDocumentation(column)}" .
+`   + getExtRef(dbt, column.SchemaInfo.content) +
+`    mago:description "${RDF.fieldDocumentation(column)}" .
 
 `
     });
@@ -160,8 +203,35 @@ function addDBT(docName, docURI, dbt, dbtType, tables) {
     return dbtText;
 }
 
+function getExtRef(dbt, colName) {
+    var extRefText = "";
+    dbt.externalRef?.forEach(er => {
+        if ( _.toLower(er.Keys?.KeySegment?.Foreign) == _.toLower(colName) ) {
+            extRefText = `    mago:externalReference  ${RDF.docURI({ namespace : er.namespace })}:${primarySegmentName(er, er.Keys?.KeySegment?.Primary)} ;\n`
+        }
+    })
+    return extRefText;
+}
+
 function findTable(namespace, tables) {
     return tables.find(table => _.toLower(table.namespace) == _.toLower(namespace));
+}
+
+function primarySegmentName(er, primaryColName) {
+    var extDbtsFName = path.join(options.input, metadata.appName(er.namespace), metadata.moduleName(er.namespace),"ModuleObjects", metadata.objectName(er.namespace), "Description", "Dbts.xml" );
+    if (!fs.existsSync(extDbtsFName)) {
+        warning(`Document ${er.namespace} has no DBTs defined`);
+        return `undefined:${primaryColName}`;
+    }
+
+    var dbts = metadata.parseXML(extDbtsFName);
+
+    if (!metadata.defined(dbts.Master)) {
+        warning(`Document ${er.namespace} has no Master DBT defined`);
+        return `undefined:${primaryColName}`;
+    }
+
+    return `${RDF.fieldName({ namespace : dbts.Master.namespace }, primaryColName)}`;
 }
 
 //#region old code

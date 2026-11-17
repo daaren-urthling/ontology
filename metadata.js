@@ -76,6 +76,12 @@ function appName(namespace) {
             segments.length == 5 ? segments[1] : "";
 }
 
+function moduleName(namespace) {
+    var segments = namespace.split('.');
+    return segments.length == 4 ? segments[1] : 
+            segments.length == 5 ? segments[2] : "";
+}
+
 function dashed(namespace) {
     return namespace.replace(/\./g,"-");
 }
@@ -116,5 +122,6 @@ export default   {
     appName,
     dashed,
     compact,
-    isBatch
+    isBatch,
+    moduleName
 }
