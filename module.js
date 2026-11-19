@@ -3,7 +3,7 @@ import _ from 'lodash';
 import path from 'node:path';
 import fs from 'node:fs';
 // import markdown from './markdown.js';
-import { error, warning } from './notifications.js';
+import { error, warning, info } from './notifications.js';
 import RDF from './RDF.js'
 import { options } from './commonOptions.js';
 
@@ -214,21 +214,36 @@ function getExtRef(dbt, colName) {
 }
 
 function findTable(namespace, tables) {
-    return tables.find(table => _.toLower(table.namespace) == _.toLower(namespace));
+    var table;
+    if (table = tables.find(tbl => _.toLower(tbl.namespace) == _.toLower(namespace)))
+        return table;
+    
+    var dbMetadata = path.join(options.input, metadata.appName(namespace), metadata.moduleName(namespace),'EFCore', 'EFSchemaObjects.xml');
+    if (!fs.existsSync(dbMetadata)) {
+        warning(`Module ${metadata.moduleName(namespace)} of application ${metadata.appName(namespace)} has no tables defined. Table ${namespace} skipped.`);
+        return null;
+    }
+    var dbObjects = metadata.parseXML(dbMetadata);
+    table = dbObjects.Tables?.Table?.find(tbl => _.toLower(tbl.namespace) == _.toLower(namespace));
+
+    if (table)
+        tables.push(table);
+    // info(`Reference to a table of another module: ${namespace}`)
+    return table;
 }
 
 function primarySegmentName(er, primaryColName) {
     var extDbtsFName = path.join(options.input, metadata.appName(er.namespace), metadata.moduleName(er.namespace),"ModuleObjects", metadata.objectName(er.namespace), "Description", "Dbts.xml" );
     if (!fs.existsSync(extDbtsFName)) {
         warning(`Document ${er.namespace} has no DBTs defined`);
-        return `undefined:${primaryColName}`;
+        return `undefined_${primaryColName}`;
     }
 
     var dbts = metadata.parseXML(extDbtsFName);
 
     if (!metadata.defined(dbts.Master)) {
         warning(`Document ${er.namespace} has no Master DBT defined`);
-        return `undefined:${primaryColName}`;
+        return `undefined_${primaryColName}`;
     }
 
     return `${RDF.fieldName({ namespace : dbts.Master.namespace }, primaryColName)}`;
